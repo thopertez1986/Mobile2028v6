@@ -1,14 +1,14 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import Webcam from 'react-webcam';
-import { useDropzone } from 'react-dropzone';
-import { format } from 'date-fns';
-import { useGeolocation } from '../hooks/useGeolocation';
-import { Button } from '../components/ui/button';
-import { Card } from '../components/ui/card';
-import { Slider } from '../components/ui/slider';
-import { Toggle } from '../components/ui/toggle';
-import { Input } from '../components/ui/input';
-import { Label } from '../components/ui/label';
+import { useCallback, useEffect, useRef, useState } from "react";
+import Webcam from "react-webcam";
+import { useDropzone } from "react-dropzone";
+import { format } from "date-fns";
+import { useGeolocation } from "../hooks/useGeolocation";
+import { Button } from "../components/ui/button";
+import { Card } from "../components/ui/card";
+import { Slider } from "../components/ui/slider";
+import { Toggle } from "../components/ui/toggle";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
 import {
   Camera,
   Download,
@@ -29,33 +29,34 @@ import {
   Save,
   Calendar,
   Clock,
-} from 'lucide-react';
-import { toast } from '../hooks/use-toast';
-import { cn } from '../lib/utils';
-import { Header } from '../components/Header';
+} from "lucide-react";
+import { toast } from "../hooks/use-toast";
+import { cn } from "../lib/utils";
+import { Header } from "../components/Header";
 
 export default function GeotagCamera() {
   const webcamRef = useRef(null);
   const canvasRef = useRef(null);
 
   // Camera states
-  const [facingMode, setFacingMode] = useState('environment');
-  const [flashMode, setFlashMode] = useState('auto');
+  const [facingMode, setFacingMode] = useState("environment");
+  const [flashMode, setFlashMode] = useState("auto");
   const [zoom, setZoom] = useState(1);
   const [showGrid, setShowGrid] = useState(true);
   const [showLocation, setShowLocation] = useState(true);
   const [showLogo, setShowLogo] = useState(true);
   const [showTitle, setShowTitle] = useState(true);
-  const [logo, setLogo] = useState(null);
+  // Default logo from /public (can be replaced via upload)
+  const [logo, setLogo] = useState("/logome.webp");
   const [capturedImage, setCapturedImage] = useState(null);
   const [showAllControls, setShowAllControls] = useState(false);
   const [devices, setDevices] = useState([]);
   const [currentDeviceId, setCurrentDeviceId] = useState(null);
   const [currentDateTime, setCurrentDateTime] = useState(new Date());
-  
+
   // Title and subtitle states
-  const [title, setTitle] = useState('Geotagged Photo');
-  const [subtitle, setSubtitle] = useState('Captured with GPS location');
+  const [title, setTitle] = useState("Geotagged Photo");
+  const [subtitle, setSubtitle] = useState("Captured with GPS location");
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [isEditingSubtitle, setIsEditingSubtitle] = useState(false);
 
@@ -77,15 +78,40 @@ export default function GeotagCamera() {
   };
 
   // Geolocation
-  const { location, address, error: geoError, loading: geoLoading } = useGeolocation();
+  const {
+    location,
+    address,
+    error: geoError,
+    loading: geoLoading,
+  } = useGeolocation();
+
+  // Fallback coordinates (used when GPS is unavailable) - Pio Duran, Albay
+  const fallbackCoordinates = {
+    latitude: 13.0547,
+    longitude: 123.5214,
+  };
+
+  const effectiveCoordinates = location
+    ? {
+        latitude: location.latitude,
+        longitude: location.longitude,
+        accuracy: location.accuracy,
+        source: "gps",
+      }
+    : {
+        latitude: fallbackCoordinates.latitude,
+        longitude: fallbackCoordinates.longitude,
+        accuracy: null,
+        source: "fallback",
+      };
 
   // Initialize with geolocation error handling
   useEffect(() => {
     if (geoError) {
       toast({
-        title: 'Location Error',
-        description: 'Unable to fetch location. Using default settings.',
-        variant: 'destructive',
+        title: "Location Error",
+        description: "Unable to fetch location. Using default settings.",
+        variant: "destructive",
       });
     }
   }, [geoError]);
@@ -95,29 +121,32 @@ export default function GeotagCamera() {
     const getDevices = async () => {
       try {
         const mediaDevices = await navigator.mediaDevices.enumerateDevices();
-        const videoDevices = mediaDevices.filter(device => device.kind === 'videoinput');
+        const videoDevices = mediaDevices.filter(
+          (device) => device.kind === "videoinput",
+        );
         setDevices(videoDevices);
-        
+
         if (videoDevices.length > 0) {
-          const environmentDevice = videoDevices.find(device => 
-            device.label.toLowerCase().includes('back') || 
-            device.label.toLowerCase().includes('environment') ||
-            device.label.toLowerCase().includes('rear')
+          const environmentDevice = videoDevices.find(
+            (device) =>
+              device.label.toLowerCase().includes("back") ||
+              device.label.toLowerCase().includes("environment") ||
+              device.label.toLowerCase().includes("rear"),
           );
-          
+
           if (environmentDevice) {
             setCurrentDeviceId(environmentDevice.deviceId);
-            setFacingMode('environment');
+            setFacingMode("environment");
           } else {
             setCurrentDeviceId(videoDevices[0].deviceId);
           }
         }
       } catch (err) {
-        console.error('Error getting devices:', err);
+        console.error("Error getting devices:", err);
         toast({
-          title: 'Camera Error',
-          description: 'Unable to access camera devices',
-          variant: 'destructive',
+          title: "Camera Error",
+          description: "Unable to access camera devices",
+          variant: "destructive",
         });
       }
     };
@@ -128,32 +157,34 @@ export default function GeotagCamera() {
   // Toggle camera facing mode
   const toggleCamera = () => {
     if (devices.length > 1) {
-      const environmentDevice = devices.find(device => 
-        device.label.toLowerCase().includes('back') || 
-        device.label.toLowerCase().includes('environment') ||
-        device.label.toLowerCase().includes('rear')
+      const environmentDevice = devices.find(
+        (device) =>
+          device.label.toLowerCase().includes("back") ||
+          device.label.toLowerCase().includes("environment") ||
+          device.label.toLowerCase().includes("rear"),
       );
-      const userDevice = devices.find(device => 
-        device.label.toLowerCase().includes('front') || 
-        device.label.toLowerCase().includes('user')
+      const userDevice = devices.find(
+        (device) =>
+          device.label.toLowerCase().includes("front") ||
+          device.label.toLowerCase().includes("user"),
       );
-      
-      if (facingMode === 'environment' && userDevice) {
-        setFacingMode('user');
+
+      if (facingMode === "environment" && userDevice) {
+        setFacingMode("user");
         setCurrentDeviceId(userDevice.deviceId);
-      } else if (facingMode === 'user' && environmentDevice) {
-        setFacingMode('environment');
+      } else if (facingMode === "user" && environmentDevice) {
+        setFacingMode("environment");
         setCurrentDeviceId(environmentDevice.deviceId);
       }
     } else {
-      setFacingMode(prev => (prev === 'user' ? 'environment' : 'user'));
+      setFacingMode((prev) => (prev === "user" ? "environment" : "user"));
     }
   };
 
   // Toggle flash mode
   const toggleFlash = () => {
-    setFlashMode(prev => {
-      const next = prev === 'off' ? 'on' : prev === 'on' ? 'auto' : 'off';
+    setFlashMode((prev) => {
+      const next = prev === "off" ? "on" : prev === "on" ? "auto" : "off";
       toast({
         title: `Flash ${next}`,
         description: `Flash mode set to ${next}`,
@@ -162,16 +193,16 @@ export default function GeotagCamera() {
     });
   };
 
-  // Draw overlays on captured image
-  const drawOverlaysOnImage = (imageSrc) => {
+  // Draw overlays on captured image (embeds the info panel content into the saved photo)
+  const drawOverlaysOnImage = (imageSrc, captureDateTime) => {
     return new Promise((resolve) => {
       const img = new Image();
       img.onload = () => {
-        const canvas = canvasRef.current || document.createElement('canvas');
+        const canvas = canvasRef.current || document.createElement("canvas");
         canvas.width = img.width;
         canvas.height = img.height;
-        const ctx = canvas.getContext('2d');
-        
+        const ctx = canvas.getContext("2d");
+
         if (!ctx) {
           resolve(imageSrc);
           return;
@@ -179,90 +210,188 @@ export default function GeotagCamera() {
 
         // Draw original image
         ctx.drawImage(img, 0, 0);
-        
-        // Draw title at top center
-        if (showTitle) {
-          ctx.font = 'bold 48px Arial, sans-serif';
-          ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'top';
-          ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
-          ctx.shadowBlur = 10;
-          ctx.fillText(title, canvas.width / 2, 40);
-          
-          // Draw subtitle at bottom left corner (grouped with other info)
-          if (subtitle) {
-            ctx.font = 'bold 32px Arial, sans-serif';
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-            ctx.textAlign = 'left';
-            ctx.textBaseline = 'bottom';
-            ctx.fillText(subtitle, 50, canvas.height - 150);
+
+        const scale = Math.max(1, canvas.width / 1080);
+        const margin = Math.round(40 * scale);
+
+        const drawRoundedRect = (x, y, w, h, r) => {
+          const radius = Math.max(0, Math.min(r, w / 2, h / 2));
+          if (typeof ctx.roundRect === "function") {
+            ctx.beginPath();
+            ctx.roundRect(x, y, w, h, radius);
+            return;
+          }
+          // Manual rounded-rect path fallback
+          ctx.beginPath();
+          ctx.moveTo(x + radius, y);
+          ctx.lineTo(x + w - radius, y);
+          ctx.quadraticCurveTo(x + w, y, x + w, y + radius);
+          ctx.lineTo(x + w, y + h - radius);
+          ctx.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
+          ctx.lineTo(x + radius, y + h);
+          ctx.quadraticCurveTo(x, y + h, x, y + h - radius);
+          ctx.lineTo(x, y + radius);
+          ctx.quadraticCurveTo(x, y, x + radius, y);
+        };
+
+        // ---------- TOP TITLE ----------
+        // Always embed title/subtitle so the captured photo includes the same context as the UI
+        ctx.save();
+        ctx.shadowColor = "rgba(0, 0, 0, 0.75)";
+        ctx.shadowBlur = Math.round(10 * scale);
+        ctx.fillStyle = "rgba(0, 0, 0, 0.35)";
+        const titleBoxW = Math.min(
+          canvas.width - margin * 2,
+          Math.round(860 * scale),
+        );
+        const titleBoxH = Math.round(110 * scale);
+        const titleBoxX = Math.round((canvas.width - titleBoxW) / 2);
+        const titleBoxY = Math.round(40 * scale);
+        drawRoundedRect(
+          titleBoxX,
+          titleBoxY,
+          titleBoxW,
+          titleBoxH,
+          Math.round(18 * scale),
+        );
+        ctx.fill();
+
+        ctx.fillStyle = "rgba(255, 255, 255, 0.95)";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.font = `bold ${Math.round(44 * scale)}px Arial, sans-serif`;
+        // Always embed title + subtitle in the saved photo
+        ctx.fillText(
+          title || "Geotagged Photo",
+          canvas.width / 2,
+          titleBoxY + Math.round(44 * scale),
+        );
+
+        if (subtitle) {
+          ctx.font = `${Math.round(22 * scale)}px Arial, sans-serif`;
+          ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
+          ctx.fillText(
+            subtitle,
+            canvas.width / 2,
+            titleBoxY + Math.round(82 * scale),
+          );
+        }
+        ctx.restore();
+
+        // ---------- BOTTOM INFO PANEL ----------
+        const panelH = Math.round(190 * scale);
+        const panelW = canvas.width - margin * 2;
+        const panelX = margin;
+        const panelY = canvas.height - margin - panelH;
+
+        // Panel background
+        ctx.save();
+        ctx.shadowColor = "rgba(0, 0, 0, 0.6)";
+        ctx.shadowBlur = Math.round(14 * scale);
+        ctx.fillStyle = "rgba(0, 0, 0, 0.62)";
+        drawRoundedRect(panelX, panelY, panelW, panelH, Math.round(20 * scale));
+        ctx.fill();
+        ctx.restore();
+
+        // Inner layout
+        const innerPad = Math.round(18 * scale);
+        const contentX = panelX + innerPad;
+        const contentY = panelY + innerPad;
+
+        // Always embed logo in the saved photo when available (independent of UI toggle)
+        const hasLogo = Boolean(logo);
+        const logoSize = Math.round(86 * scale);
+        const logoX = contentX;
+        const logoY = contentY + Math.round(14 * scale);
+
+        const textStartX = hasLogo
+          ? logoX + logoSize + Math.round(18 * scale)
+          : contentX;
+
+        const coordsText = `${effectiveCoordinates.latitude.toFixed(5)}, ${effectiveCoordinates.longitude.toFixed(5)}`;
+        const accuracyText =
+          typeof effectiveCoordinates.accuracy === "number"
+            ? ` ±${Math.round(effectiveCoordinates.accuracy)}m`
+            : "";
+        const sourceText = effectiveCoordinates.source
+          ? ` ${effectiveCoordinates.source}`
+          : "";
+
+        const dateStr = format(
+          captureDateTime || currentDateTime,
+          "MMM dd, yyyy",
+        );
+        const timeStr = format(
+          captureDateTime || currentDateTime,
+          "hh:mm:ss a",
+        );
+
+        // Draw text
+        ctx.save();
+        ctx.textAlign = "left";
+        ctx.textBaseline = "top";
+        ctx.shadowColor = "rgba(0, 0, 0, 0.75)";
+        ctx.shadowBlur = Math.round(8 * scale);
+
+        // Subtitle line (top)
+        ctx.fillStyle = "rgba(255, 255, 255, 0.95)";
+        ctx.font = `bold ${Math.round(26 * scale)}px Arial, sans-serif`;
+        ctx.fillText(
+          subtitle || "Captured with GPS location",
+          textStartX,
+          contentY,
+        );
+
+        // Coordinates + address (always embedded in saved photo)
+        if (effectiveCoordinates) {
+          ctx.fillStyle = "rgba(180, 220, 255, 0.95)";
+          ctx.font = `${Math.round(22 * scale)}px Courier New, monospace`;
+          ctx.fillText(
+            `${coordsText}${accuracyText}${sourceText}`,
+            textStartX,
+            contentY + Math.round(42 * scale),
+          );
+
+          if (address) {
+            const addressLine = String(address).slice(0, 90);
+            ctx.fillStyle = "rgba(255, 255, 255, 0.75)";
+            ctx.font = `${Math.round(18 * scale)}px Arial, sans-serif`;
+            ctx.fillText(
+              addressLine,
+              textStartX,
+              contentY + Math.round(74 * scale),
+            );
           }
         }
 
-        // Draw logo at bottom left
-        if (showLogo && logo) {
+        // Date/time line (bottom)
+        ctx.fillStyle = "rgba(220, 230, 240, 0.85)";
+        ctx.font = `${Math.round(18 * scale)}px Arial, sans-serif`;
+        ctx.fillText(
+          `${dateStr}  •  ${timeStr}`,
+          textStartX,
+          contentY + Math.round(112 * scale),
+        );
+
+        ctx.restore();
+
+        // Draw logo (async) then resolve
+        if (hasLogo) {
           const logoImg = new Image();
           logoImg.onload = () => {
-            const logoSize = 80;
-            const margin = 40;
-            ctx.drawImage(logoImg, margin, canvas.height - logoSize - margin, logoSize, logoSize);
-            
-            // Draw location and date/time info next to logo
-            if (showLocation && location) {
-              ctx.font = '18px Arial, sans-serif';
-              ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-              ctx.textAlign = 'left';
-              ctx.textBaseline = 'middle';
-              
-              // Location
-              const locationText = `${location.latitude?.toFixed(4)}, ${location.longitude?.toFixed(4)}`;
-              ctx.fillText(locationText, margin + logoSize + 20, canvas.height - margin - 60);
-              
-              if (address) {
-                ctx.font = '14px Arial, sans-serif';
-                ctx.fillText(address, margin + logoSize + 20, canvas.height - margin - 35);
-              }
-              
-              // Date and time
-              const dateStr = format(currentDateTime, 'MMM dd, yyyy');
-              const timeStr = format(currentDateTime, 'hh:mm a');
-              ctx.font = '16px Arial, sans-serif';
-              ctx.fillText(dateStr, margin + logoSize + 20, canvas.height - margin - 10);
-              ctx.font = '14px Arial, sans-serif';
-              ctx.fillText(timeStr, margin + logoSize + 20 + ctx.measureText(dateStr).width + 15, canvas.height - margin - 10);
-            }
-            
-            resolve(canvas.toDataURL('image/jpeg', 0.95));
+            ctx.save();
+            ctx.shadowColor = "rgba(0, 0, 0, 0.65)";
+            ctx.shadowBlur = Math.round(10 * scale);
+            ctx.drawImage(logoImg, logoX, logoY, logoSize, logoSize);
+            ctx.restore();
+            resolve(canvas.toDataURL("image/jpeg", 0.95));
+          };
+          logoImg.onerror = () => {
+            resolve(canvas.toDataURL("image/jpeg", 0.95));
           };
           logoImg.src = logo;
         } else {
-          // Draw location and date/time info at bottom left even without logo
-          if (showLocation && location) {
-            ctx.font = '18px Arial, sans-serif';
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-            ctx.textAlign = 'left';
-            ctx.textBaseline = 'middle';
-            
-            const margin = 40;
-            const locationText = `${location.latitude?.toFixed(4)}, ${location.longitude?.toFixed(4)}`;
-            ctx.fillText(locationText, margin, canvas.height - margin - 40);
-            
-            if (address) {
-              ctx.font = '14px Arial, sans-serif';
-              ctx.fillText(address, margin, canvas.height - margin - 15);
-            }
-            
-            // Date and time
-            const dateStr = format(currentDateTime, 'MMM dd, yyyy');
-            const timeStr = format(currentDateTime, 'hh:mm a');
-            ctx.font = '16px Arial, sans-serif';
-            ctx.fillText(dateStr, margin, canvas.height - margin + 15);
-            ctx.font = '14px Arial, sans-serif';
-            ctx.fillText(timeStr, margin + ctx.measureText(dateStr).width + 15, canvas.height - margin + 15);
-          }
-          
-          resolve(canvas.toDataURL('image/jpeg', 0.95));
+          resolve(canvas.toDataURL("image/jpeg", 0.95));
         }
       };
       img.src = imageSrc;
@@ -272,29 +401,35 @@ export default function GeotagCamera() {
   // Handle capture
   const capturePhoto = async () => {
     if (!webcamRef.current) return;
-    
+
     try {
+      // freeze date/time for overlay so it matches the moment of capture
+      const captureDateTime = new Date();
+
       const imageSrc = webcamRef.current.getScreenshot({
         width: 1920,
-        height: 1080
+        height: 1080,
       });
-      
+
       if (imageSrc) {
-        // Add overlays to image
-        const processedImage = await drawOverlaysOnImage(imageSrc);
+        // Add overlays to image (title, subtitle, logo, coordinates, date/time)
+        const processedImage = await drawOverlaysOnImage(
+          imageSrc,
+          captureDateTime,
+        );
         setCapturedImage(processedImage);
-        
+
         toast({
-          title: 'Photo Captured!',
-          description: 'HD photo with overlays has been saved',
+          title: "Photo Captured!",
+          description: "Photo saved with embedded overlay details",
         });
       }
     } catch (error) {
-      console.error('Capture error:', error);
+      console.error("Capture error:", error);
       toast({
-        title: 'Capture Failed',
-        description: 'Unable to capture photo',
-        variant: 'destructive',
+        title: "Capture Failed",
+        description: "Unable to capture photo",
+        variant: "destructive",
       });
     }
   };
@@ -304,26 +439,27 @@ export default function GeotagCamera() {
     if (!capturedImage) return;
 
     try {
-      const link = document.createElement('a');
-      const timestamp = format(new Date(), 'yyyy-MM-dd_HH-mm-ss');
-      const locationStr = location ? 
-        `_${location.latitude?.toFixed(4) || '0.0000'}N_${location.longitude?.toFixed(4) || '0.0000'}E` : '';
+      const link = document.createElement("a");
+      const timestamp = format(new Date(), "yyyy-MM-dd_HH-mm-ss");
+      const locationStr = location
+        ? `_${location.latitude?.toFixed(4) || "0.0000"}N_${location.longitude?.toFixed(4) || "0.0000"}E`
+        : "";
       const filename = `geotag_${timestamp}${locationStr}_HD.jpg`;
-      
+
       link.download = filename;
       link.href = capturedImage;
       link.click();
-      
+
       toast({
-        title: 'Photo Downloaded',
+        title: "Photo Downloaded",
         description: `Saved as ${filename}`,
       });
     } catch (error) {
-      console.error('Download error:', error);
+      console.error("Download error:", error);
       toast({
-        title: 'Download Failed',
-        description: 'Unable to download image',
-        variant: 'destructive',
+        title: "Download Failed",
+        description: "Unable to download image",
+        variant: "destructive",
       });
     }
   };
@@ -342,28 +478,29 @@ export default function GeotagCamera() {
   const onDrop = useCallback((acceptedFiles) => {
     if (acceptedFiles.length > 0) {
       const file = acceptedFiles[0];
-      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      if (file.size > 5 * 1024 * 1024) {
+        // 5MB limit
         toast({
-          title: 'File Too Large',
-          description: 'Please upload an image smaller than 5MB',
-          variant: 'destructive',
+          title: "File Too Large",
+          description: "Please upload an image smaller than 5MB",
+          variant: "destructive",
         });
         return;
       }
-      
+
       const reader = new FileReader();
       reader.onload = () => {
         setLogo(reader.result);
         toast({
-          title: 'Logo Uploaded',
-          description: 'Your logo has been successfully uploaded',
+          title: "Logo Uploaded",
+          description: "Your logo has been successfully uploaded",
         });
       };
       reader.onerror = () => {
         toast({
-          title: 'Upload Failed',
-          description: 'Unable to read logo file',
-          variant: 'destructive',
+          title: "Upload Failed",
+          description: "Unable to read logo file",
+          variant: "destructive",
         });
       };
       reader.readAsDataURL(file);
@@ -373,7 +510,7 @@ export default function GeotagCamera() {
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
-      'image/*': ['.png', '.jpg', '.jpeg', '.svg', '.webp'],
+      "image/*": [".png", ".jpg", ".jpeg", ".svg", ".webp"],
     },
     maxFiles: 1,
     maxSize: 5 * 1024 * 1024, // 5MB
@@ -383,8 +520,8 @@ export default function GeotagCamera() {
   const saveTitle = () => {
     setIsEditingTitle(false);
     toast({
-      title: 'Title Saved',
-      description: 'Title updated successfully',
+      title: "Title Saved",
+      description: "Title updated successfully",
     });
   };
 
@@ -392,18 +529,18 @@ export default function GeotagCamera() {
   const saveSubtitle = () => {
     setIsEditingSubtitle(false);
     toast({
-      title: 'Subtitle Saved',
-      description: 'Subtitle updated successfully',
+      title: "Subtitle Saved",
+      description: "Subtitle updated successfully",
     });
   };
 
   // Handle key press for title/subtitle editing
   const handleKeyPress = (e, type) => {
-    if (e.key === 'Enter') {
-      if (type === 'title') saveTitle();
+    if (e.key === "Enter") {
+      if (type === "title") saveTitle();
       else saveSubtitle();
-    } else if (e.key === 'Escape') {
-      if (type === 'title') setIsEditingTitle(false);
+    } else if (e.key === "Escape") {
+      if (type === "title") setIsEditingTitle(false);
       else setIsEditingSubtitle(false);
     }
   };
@@ -411,11 +548,11 @@ export default function GeotagCamera() {
   return (
     <div className="w-full h-full bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
       <Header title="Geotag Camera HD" showBack />
-      
+
       <main className="flex-1 flex flex-col overflow-hidden h-[calc(100vh-80px)]">
         {/* Hidden canvas for image processing */}
         <canvas ref={canvasRef} className="hidden" />
-        
+
         {/* Camera View */}
         <div className="flex-1 bg-black relative overflow-hidden">
           {!capturedImage ? (
@@ -425,17 +562,18 @@ export default function GeotagCamera() {
               screenshotFormat="image/jpeg"
               videoConstraints={videoConstraints}
               style={{
-                width: '100%',
-                height: '100%',
-                objectFit: 'cover',
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
                 transform: `scale(${zoom})`,
               }}
               onUserMediaError={(error) => {
-                console.error('Webcam error:', error);
+                console.error("Webcam error:", error);
                 toast({
-                  title: 'Camera Error',
-                  description: 'Unable to access camera. Please check permissions.',
-                  variant: 'destructive',
+                  title: "Camera Error",
+                  description:
+                    "Unable to access camera. Please check permissions.",
+                  variant: "destructive",
                 });
               }}
             />
@@ -450,13 +588,14 @@ export default function GeotagCamera() {
           {/* Grid Overlay */}
           {showGrid && !capturedImage && (
             <div className="absolute inset-0 pointer-events-none">
-              <div className="absolute inset-0 opacity-20"
+              <div
+                className="absolute inset-0 opacity-20"
                 style={{
                   backgroundImage: `
                     linear-gradient(0deg, transparent 24%, rgba(255,255,255,.1) 25%, rgba(255,255,255,.1) 26%, transparent 27%, transparent 74%, rgba(255,255,255,.1) 75%, rgba(255,255,255,.1) 76%, transparent 77%, transparent),
                     linear-gradient(90deg, transparent 24%, rgba(255,255,255,.1) 25%, rgba(255,255,255,.1) 26%, transparent 27%, transparent 74%, rgba(255,255,255,.1) 75%, rgba(255,255,255,.1) 76%, transparent 77%, transparent)
                   `,
-                  backgroundSize: '50px 50px'
+                  backgroundSize: "50px 50px",
                 }}
               />
             </div>
@@ -464,65 +603,17 @@ export default function GeotagCamera() {
 
           {/* Title Display (Center) */}
           {showTitle && !capturedImage && (
-            <div className="absolute top-1/4 left-1/2 transform -translate-x-1/2 text-center pointer-events-none z-10">
-              <div className="bg-black/50 backdrop-blur-sm rounded-xl p-6 max-w-lg">
-                <h2 className="text-4xl font-bold text-white mb-2 drop-shadow-lg">{title}</h2>
+            <div className="absolute top-8 left-1/2 transform -translate-x-1/2 text-center pointer-events-none z-10">
+              <div className="bg-black/50 backdrop-blur-sm rounded-xl p-4 max-w-lg">
+                <h2 className="text-2xl font-bold text-white drop-shadow-lg">
+                  {title}
+                </h2>
               </div>
             </div>
           )}
 
-          {/* Bottom Left Overlay Group */}
-          {!capturedImage && (
-            <div className="absolute bottom-20 left-6 pointer-events-none z-10 flex flex-col items-start space-y-2 max-w-sm">
-              {/* Logo */}
-              {showLogo && logo && (
-                <div className="bg-white/20 backdrop-blur-md rounded-lg p-2 border border-white/30 shadow-lg mb-2">
-                  <img src={logo} alt="Logo" className="h-16 w-16 object-contain" />
-                </div>
-              )}
-              
-              {/* Subtitle */}
-              {showTitle && subtitle && (
-                <div className="bg-black/50 backdrop-blur-sm rounded-lg px-4 py-2 border border-white/20 shadow-lg">
-                  <p className="text-xl font-semibold text-white drop-shadow-lg">{subtitle}</p>
-                </div>
-              )}
-              
-              {/* Location Info */}
-              {showLocation && location && (
-                <div className="bg-blue-900/90 backdrop-blur-sm rounded-lg px-4 py-3 border border-blue-500/50 shadow-lg space-y-1">
-                  <div className="flex items-center gap-2">
-                    <MapPin className="w-4 h-4 text-blue-400" />
-                    <span className="text-sm text-white font-medium">
-                      {location.latitude?.toFixed(4)}, {location.longitude?.toFixed(4)}
-                    </span>
-                  </div>
-                  {address && (
-                    <p className="text-xs text-blue-300 truncate max-w-[250px] pl-6">
-                      {address}
-                    </p>
-                  )}
-                </div>
-              )}
-              
-              {/* Date and Time */}
-              <div className="bg-slate-800/90 backdrop-blur-sm rounded-lg px-4 py-3 border border-slate-600/50 shadow-lg">
-                <div className="flex items-center gap-2 text-white">
-                  <Calendar className="w-4 h-4 text-slate-300" />
-                  <span className="text-sm font-medium">
-                    {format(currentDateTime, 'MMM dd, yyyy')}
-                  </span>
-                  <Clock className="w-4 h-4 text-slate-300 ml-2" />
-                  <span className="text-sm font-medium">
-                    {format(currentDateTime, 'hh:mm:ss a')}
-                  </span>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Quick Controls Bar */}
-          <div className="absolute bottom-20 left-1/2 transform -translate-x-1/2 flex items-center gap-3 bg-black/70 backdrop-blur-md rounded-full px-4 py-2 border border-white/20 z-10">
+          {/* VERTICAL CONTROL BUTTONS - RIGHT SIDE */}
+          <div className="absolute right-4 top-1/3 flex flex-col gap-3 z-10">
             {/* Flash Control */}
             <Button
               onClick={toggleFlash}
@@ -530,13 +621,13 @@ export default function GeotagCamera() {
               size="icon"
               className={cn(
                 "w-10 h-10 rounded-full hover:bg-yellow-500/20",
-                flashMode !== 'off' && "bg-yellow-500/30 text-yellow-400"
+                flashMode !== "off" && "bg-yellow-500/30 text-yellow-400",
               )}
               aria-label={`Flash ${flashMode}`}
             >
-              {flashMode === 'off' ? (
+              {flashMode === "off" ? (
                 <ZapOff className="w-5 h-5" />
-              ) : flashMode === 'on' ? (
+              ) : flashMode === "on" ? (
                 <Zap className="w-5 h-5" />
               ) : (
                 <Zap className="w-5 h-5 text-blue-400" />
@@ -549,7 +640,7 @@ export default function GeotagCamera() {
               onPressedChange={setShowGrid}
               className={cn(
                 "w-10 h-10 rounded-full hover:bg-blue-500/20",
-                showGrid && "bg-blue-500/30 text-blue-400"
+                showGrid && "bg-blue-500/30 text-blue-400",
               )}
               aria-label="Toggle grid"
             >
@@ -562,7 +653,7 @@ export default function GeotagCamera() {
               onPressedChange={setShowLocation}
               className={cn(
                 "w-10 h-10 rounded-full hover:bg-green-500/20",
-                showLocation && "bg-green-500/30 text-green-400"
+                showLocation && "bg-green-500/30 text-green-400",
               )}
               aria-label="Toggle location"
             >
@@ -575,7 +666,7 @@ export default function GeotagCamera() {
               onPressedChange={setShowTitle}
               className={cn(
                 "w-10 h-10 rounded-full hover:bg-purple-500/20",
-                showTitle && "bg-purple-500/30 text-purple-400"
+                showTitle && "bg-purple-500/30 text-purple-400",
               )}
               aria-label="Toggle title"
             >
@@ -588,7 +679,7 @@ export default function GeotagCamera() {
               onPressedChange={setShowLogo}
               className={cn(
                 "w-10 h-10 rounded-full hover:bg-pink-500/20",
-                showLogo && "bg-pink-500/30 text-pink-400"
+                showLogo && "bg-pink-500/30 text-pink-400",
               )}
               aria-label="Toggle logo"
             >
@@ -606,16 +697,138 @@ export default function GeotagCamera() {
             </div>
           )}
 
-          {/* Settings/Controls Toggle Button */}
+          {/* Settings/Controls Toggle Button - TOP RIGHT */}
           <Button
             onClick={toggleAllControls}
             variant="outline"
             size="icon"
-            className="absolute bottom-4 right-4 bg-white/20 hover:bg-white/30 border-white/30 z-10 shadow-lg"
+            className="absolute top-4 right-4 bg-white/20 hover:bg-white/30 border-white/30 z-10 shadow-lg"
             aria-label="Settings"
           >
             <Settings className="w-5 h-5 text-white" />
           </Button>
+
+          {/* Bottom Container - info panel + capture button */}
+          {!capturedImage && !showAllControls && (
+            <div
+              className="absolute bottom-4 left-4 right-4 flex items-end gap-3 z-10"
+              data-testid="geotag-camera-bottom-bar"
+            >
+              {/* Info Panel (flex-1) */}
+              <div
+                className="flex-1 min-w-0"
+                data-testid="geotag-camera-info-panel"
+              >
+                <div className="bg-black/70 backdrop-blur-md rounded-lg p-3 border border-white/10 shadow-lg">
+                  <div className="flex items-start gap-3">
+                    {showLogo && logo && (
+                      <div
+                        className="flex-shrink-0"
+                        data-testid="geotag-camera-logo"
+                      >
+                        <img
+                          src={logo}
+                          alt="Logo"
+                          className="h-8 w-8 object-contain"
+                        />
+                      </div>
+                    )}
+
+                    <div className="flex-1 min-w-0">
+                      {/* Line 1: Subtitle / status */}
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          {showTitle && subtitle ? (
+                            <div className="text-sm font-semibold text-white truncate">
+                              {subtitle}
+                            </div>
+                          ) : (
+                            <div className="text-sm font-semibold text-white/90">
+                              Photo ready
+                            </div>
+                          )}
+                        </div>
+
+                        <div
+                          className="text-[10px] text-white/60 flex-shrink-0"
+                          data-testid="geotag-camera-location-status"
+                        >
+                          {geoLoading
+                            ? "Locating…"
+                            : geoError
+                              ? "Location off"
+                              : "GPS on"}
+                        </div>
+                      </div>
+
+                      {/* Line 2: Coordinates (always visible when Location toggle is on) */}
+                      {showLocation && (
+                        <div className="mt-1 flex items-center gap-2 text-[11px] text-blue-200">
+                          <MapPin className="w-3 h-3 flex-shrink-0" />
+                          <span
+                            className="font-mono tracking-tight"
+                            data-testid="geotag-camera-coordinates"
+                          >
+                            {effectiveCoordinates.latitude.toFixed(5)},{" "}
+                            {effectiveCoordinates.longitude.toFixed(5)}
+                            {typeof effectiveCoordinates.accuracy ===
+                              "number" && (
+                              <span className="font-sans text-white/60 ml-2">
+                                ±{Math.round(effectiveCoordinates.accuracy)}m
+                              </span>
+                            )}
+                            <span className="font-sans text-white/50 ml-2 uppercase tracking-wide">
+                              {effectiveCoordinates.source}
+                            </span>
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Line 3: Date/time */}
+                      <div className="mt-1 flex items-center gap-2 text-[10px] text-slate-300">
+                        <Calendar className="w-3 h-3 flex-shrink-0" />
+                        <span data-testid="geotag-camera-date">
+                          {format(currentDateTime, "MMM dd, yyyy")}
+                        </span>
+                        <span className="mx-1">•</span>
+                        <Clock className="w-3 h-3 flex-shrink-0" />
+                        <span data-testid="geotag-camera-time">
+                          {format(currentDateTime, "hh:mm:ss a")}
+                        </span>
+                      </div>
+
+                      {/* Optional address */}
+                      {showLocation && address && (
+                        <div
+                          className="mt-1 text-[10px] text-white/60 truncate"
+                          title={address}
+                          data-testid="geotag-camera-address"
+                        >
+                          {address}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Capture Button - pinned to the right */}
+              <div
+                className="flex-shrink-0 ml-auto"
+                data-testid="geotag-camera-capture-container"
+              >
+                <Button
+                  onClick={capturePhoto}
+                  className="w-16 h-16 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-xl transition-all duration-200 transform hover:scale-105 active:scale-95"
+                  size="icon"
+                  aria-label="Capture photo"
+                  data-testid="geotag-camera-capture-button"
+                >
+                  <Camera className="w-14 h-14" />
+                </Button>
+              </div>
+            </div>
+          )}
 
           {/* All Controls Overlay */}
           {showAllControls && !capturedImage && (
@@ -627,27 +840,29 @@ export default function GeotagCamera() {
                     <Type className="w-5 h-5" />
                     Title & Subtitle
                   </h3>
-                  
+
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <Label htmlFor="title" className="text-white/80">Title</Label>
+                      <Label htmlFor="title" className="text-white/80">
+                        Title
+                      </Label>
                       <Toggle
                         pressed={showTitle}
                         onPressedChange={setShowTitle}
                         size="sm"
                         className="h-8"
                       >
-                        {showTitle ? 'Visible' : 'Hidden'}
+                        {showTitle ? "Visible" : "Hidden"}
                       </Toggle>
                     </div>
-                    
+
                     {isEditingTitle ? (
                       <div className="flex gap-2">
                         <Input
                           id="title"
                           value={title}
                           onChange={(e) => setTitle(e.target.value)}
-                          onKeyDown={(e) => handleKeyPress(e, 'title')}
+                          onKeyDown={(e) => handleKeyPress(e, "title")}
                           className="flex-1 bg-white/10 border-white/20 text-white"
                           placeholder="Enter title"
                           autoFocus
@@ -674,20 +889,24 @@ export default function GeotagCamera() {
                         className="p-3 bg-white/5 rounded-lg border border-white/10 hover:bg-white/10 cursor-pointer transition-colors"
                       >
                         <div className="text-white font-medium">{title}</div>
-                        <div className="text-xs text-white/60 mt-1">Click to edit</div>
+                        <div className="text-xs text-white/60 mt-1">
+                          Click to edit
+                        </div>
                       </div>
                     )}
                   </div>
 
                   <div className="space-y-3">
-                    <Label htmlFor="subtitle" className="text-white/80">Subtitle</Label>
+                    <Label htmlFor="subtitle" className="text-white/80">
+                      Subtitle
+                    </Label>
                     {isEditingSubtitle ? (
                       <div className="flex gap-2">
                         <Input
                           id="subtitle"
                           value={subtitle}
                           onChange={(e) => setSubtitle(e.target.value)}
-                          onKeyDown={(e) => handleKeyPress(e, 'subtitle')}
+                          onKeyDown={(e) => handleKeyPress(e, "subtitle")}
                           className="flex-1 bg-white/10 border-white/20 text-white"
                           placeholder="Enter subtitle"
                           autoFocus
@@ -714,7 +933,9 @@ export default function GeotagCamera() {
                         className="p-3 bg-white/5 rounded-lg border border-white/10 hover:bg-white/10 cursor-pointer transition-colors"
                       >
                         <div className="text-white">{subtitle}</div>
-                        <div className="text-xs text-white/60 mt-1">Click to edit</div>
+                        <div className="text-xs text-white/60 mt-1">
+                          Click to edit
+                        </div>
                       </div>
                     )}
                   </div>
@@ -727,7 +948,9 @@ export default function GeotagCamera() {
                       <ZoomIn className="w-4 h-4 text-white/70" />
                       <span className="text-white/70">Zoom Level</span>
                     </div>
-                    <span className="text-white font-bold">{(zoom * 100).toFixed(0)}%</span>
+                    <span className="text-white font-bold">
+                      {(zoom * 100).toFixed(0)}%
+                    </span>
                   </div>
                   <Slider
                     min={1}
@@ -749,7 +972,7 @@ export default function GeotagCamera() {
                     <FlipHorizontal className="w-6 h-6 text-white mr-2" />
                     Flip
                   </Button>
-                  
+
                   <div className="flex flex-col items-center">
                     <span className="text-xs text-white/70 mb-1">Flash</span>
                     <Button
@@ -758,24 +981,27 @@ export default function GeotagCamera() {
                       size="icon"
                       className={cn(
                         "w-12 h-12",
-                        flashMode !== 'off' && "bg-yellow-500/30 border-yellow-500/50"
+                        flashMode !== "off" &&
+                          "bg-yellow-500/30 border-yellow-500/50",
                       )}
                     >
-                      {flashMode === 'off' ? (
+                      {flashMode === "off" ? (
                         <ZapOff className="w-6 h-6 text-white" />
-                      ) : flashMode === 'on' ? (
+                      ) : flashMode === "on" ? (
                         <Zap className="w-6 h-6 text-yellow-400" />
                       ) : (
                         <Zap className="w-6 h-6 text-blue-400" />
                       )}
                     </Button>
-                    <span className="text-xs text-white/70 mt-1 capitalize">{flashMode}</span>
+                    <span className="text-xs text-white/70 mt-1 capitalize">
+                      {flashMode}
+                    </span>
                   </div>
 
                   <div className="flex flex-col items-center">
                     <span className="text-xs text-white/70 mb-1">Camera</span>
                     <div className="text-xs text-white font-medium capitalize">
-                      {facingMode === 'environment' ? 'Rear' : 'Front'}
+                      {facingMode === "environment" ? "Rear" : "Front"}
                     </div>
                   </div>
                 </div>
@@ -787,7 +1013,7 @@ export default function GeotagCamera() {
                     onPressedChange={setShowGrid}
                     className={cn(
                       "h-12 justify-start gap-3 bg-white/10 hover:bg-white/20 border border-white/20 px-4",
-                      showGrid && "bg-blue-500/30 border-blue-500/50"
+                      showGrid && "bg-blue-500/30 border-blue-500/50",
                     )}
                   >
                     <Grid3x3 className="w-5 h-5" />
@@ -799,7 +1025,7 @@ export default function GeotagCamera() {
                     onPressedChange={setShowLocation}
                     className={cn(
                       "h-12 justify-start gap-3 bg-white/10 hover:bg-white/20 border border-white/20 px-4",
-                      showLocation && "bg-green-500/30 border-green-500/50"
+                      showLocation && "bg-green-500/30 border-green-500/50",
                     )}
                   >
                     <MapPin className="w-5 h-5" />
@@ -811,7 +1037,7 @@ export default function GeotagCamera() {
                     onPressedChange={setShowLogo}
                     className={cn(
                       "h-12 justify-start gap-3 bg-white/10 hover:bg-white/20 border border-white/20 px-4",
-                      showLogo && "bg-purple-500/30 border-purple-500/50"
+                      showLogo && "bg-purple-500/30 border-purple-500/50",
                     )}
                   >
                     <Package className="w-5 h-5" />
@@ -836,7 +1062,7 @@ export default function GeotagCamera() {
                   onClick={capturePhoto}
                   className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-bold py-4 rounded-xl flex items-center justify-center gap-3 text-lg shadow-lg"
                 >
-                  <Camera className="w-6 h-6" />
+                  <Camera className="w-12 h-12" />
                   Capture HD Photo
                 </Button>
 
@@ -854,29 +1080,19 @@ export default function GeotagCamera() {
           )}
         </div>
 
-        {/* Capture Button (when controls are hidden) */}
-        {!showAllControls && !capturedImage && (
-          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-10">
-            <Button
-              onClick={capturePhoto}
-              className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-bold mb-4 py-4 px-10 rounded-full flex items-center justify-center gap-3 shadow-xl text-lg"
-              size="lg"
-            >
-              <Camera className="w-7 h-7" />
-              Capture
-            </Button>
-          </div>
-        )}
-
         {/* Preview Controls */}
         {capturedImage && (
           <div className="absolute inset-0 bg-black/90 backdrop-blur-sm flex flex-col justify-end p-6 z-30 animate-in fade-in duration-300">
             <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-6 space-y-4">
               <div className="text-center mb-4">
-                <h3 className="text-xl font-bold text-white">Photo Captured!</h3>
-                <p className="text-white/70 text-sm">HD quality with geotagging and overlays</p>
+                <h3 className="text-xl font-bold text-white">
+                  Photo Captured!
+                </h3>
+                <p className="text-white/70 text-sm">
+                  HD quality with geotagging and overlays
+                </p>
               </div>
-              
+
               <Button
                 onClick={downloadImage}
                 className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold py-4 rounded-xl flex items-center justify-center gap-3 text-lg"
@@ -884,7 +1100,7 @@ export default function GeotagCamera() {
                 <Download className="w-6 h-6" />
                 Download HD Photo
               </Button>
-              
+
               <div className="grid grid-cols-2 gap-3">
                 <Button
                   onClick={resetCapture}
@@ -894,7 +1110,7 @@ export default function GeotagCamera() {
                   <RefreshCcw className="w-5 h-5 mr-2" />
                   Retake
                 </Button>
-                
+
                 <Button
                   onClick={() => setCapturedImage(null)}
                   variant="outline"
