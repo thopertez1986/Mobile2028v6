@@ -23,11 +23,18 @@ function getCodeServerPassword() {
 
 const SUP_PASS = getCodeServerPassword();
 
-// Dev server setup function
+    const { registerChatRoutes } = require("../../server/replit_integrations/chat/index.js");
+    const { registerImageRoutes } = require("../../server/replit_integrations/image/index.js");
+    
+    // Dev server setup function
 function setupDevServer(config) {
   config.setupMiddlewares = (middlewares, devServer) => {
     if (!devServer) throw new Error("webpack-dev-server not defined");
     devServer.app.use(express.json());
+
+    // Register integration routes
+    registerChatRoutes(devServer.app);
+    registerImageRoutes(devServer.app);
 
     // CORS origin validation
     const isAllowedOrigin = (origin) => {
