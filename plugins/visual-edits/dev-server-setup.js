@@ -23,18 +23,28 @@ function getCodeServerPassword() {
 
 const SUP_PASS = getCodeServerPassword();
 
-    const { registerChatRoutes } = require("../../server/replit_integrations/chat/index.js");
-    const { registerImageRoutes } = require("../../server/replit_integrations/image/index.js");
-    
-    // Dev server setup function
+// Register integration routes
+require("@babel/register")({
+  extensions: [".ts", ".tsx", ".js", ".jsx"],
+  presets: ["@babel/preset-env", "@babel/preset-typescript"],
+});
+
+const { registerChatRoutes } = require("../../server/replit_integrations/chat/index.ts");
+const { registerImageRoutes } = require("../../server/replit_integrations/image/index.ts");
+
+// Dev server setup function
 function setupDevServer(config) {
   config.setupMiddlewares = (middlewares, devServer) => {
     if (!devServer) throw new Error("webpack-dev-server not defined");
     devServer.app.use(express.json());
 
     // Register integration routes
-    registerChatRoutes(devServer.app);
-    registerImageRoutes(devServer.app);
+    if (registerChatRoutes) {
+      registerChatRoutes(devServer.app);
+    }
+    if (registerImageRoutes) {
+      registerImageRoutes(devServer.app);
+    }
 
     // CORS origin validation
     const isAllowedOrigin = (origin) => {
